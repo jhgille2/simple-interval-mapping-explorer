@@ -1,0 +1,166 @@
+/* Styles for the Simple Interval Mapping Explorer. */
+
+:root {
+  --ink: #1e2a32;
+  --muted: #5a6b76;
+  --line: #d8dee3;
+  --panel: #ffffff;
+  --bg: #f4f6f8;
+  --accent: #1f6fb2;
+  --accent-b: #d95f02;
+  --qtl: #333333;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+.site-header {
+  background: var(--ink);
+  color: #eef2f5;
+  padding: 28px 0 22px;
+}
+.site-header h1 { margin: 0 0 8px; font-size: 1.7rem; font-weight: 600; }
+.site-header .subtitle { margin: 0; max-width: 70ch; color: #c3ced6; font-size: 0.95rem; }
+.repo-link { margin: 10px 0 0; font-size: 0.85rem; }
+.repo-link a { color: #9fc7e8; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 22px;
+  padding-top: 22px;
+  padding-bottom: 30px;
+  align-items: start;
+}
+
+/* ---- Controls ---- */
+.controls {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px 16px 18px;
+  position: sticky;
+  top: 16px;
+}
+.controls h2 { margin: 0 0 10px; font-size: 1.05rem; }
+.controls fieldset {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin: 0 0 12px;
+  padding: 10px 12px 12px;
+}
+.controls legend { font-size: 0.8rem; font-weight: 600; color: var(--muted); padding: 0 6px; }
+
+.ctl { display: block; margin: 8px 0; }
+.ctl-name {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+.ctl-name output { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ctl input[type="range"] { width: 100%; }
+.ctl input[type="number"], .ctl select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.check { display: block; font-size: 0.85rem; margin: 6px 0; }
+.check input { margin-right: 6px; }
+.hint { font-size: 0.78rem; color: var(--muted); margin: 6px 0 0; }
+
+.btn-row { margin: 10px 0 2px; }
+button {
+  font-size: 0.88rem;
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button:hover { background: #185a91; }
+button:disabled { opacity: 0.55; cursor: default; }
+
+/* ---- Panels ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px 18px 18px;
+  margin-bottom: 20px;
+}
+.panel h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.caption { margin: 0 0 12px; font-size: 0.86rem; color: var(--muted); max-width: 90ch; }
+
+canvas { display: block; width: 100%; }
+#cv-hap { height: 420px; cursor: pointer; }
+#cv-w { height: 300px; }
+#cv-lod { height: 300px; }
+
+.legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.sw {
+  display: inline-block;
+  width: 22px; height: 0;
+  border-top: 3px solid #999;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.sw-sel { border-color: var(--accent); }
+.sw-faint { border-color: rgba(31, 111, 178, 0.35); }
+.sw-info { border-color: var(--accent-b); border-top-style: dashed; }
+.sw-qtl { border-color: var(--qtl); border-top-style: dashed; }
+.sw-lod { border-color: #1b7a3d; }
+.sw-thr { border-color: #c0392b; border-top-style: dashed; }
+
+/* ---- Summary table ---- */
+table.summary { border-collapse: collapse; font-size: 0.88rem; width: 100%; max-width: 560px; }
+table.summary td { padding: 5px 10px 5px 0; border-bottom: 1px solid var(--line); }
+table.summary td:first-child { color: var(--muted); width: 46%; }
+table.summary td:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ---- Methods ---- */
+details summary { cursor: pointer; font-weight: 600; font-size: 0.95rem; }
+.methods { font-size: 0.9rem; max-width: 92ch; }
+.methods .eq {
+  background: #f7f9fb;
+  border-left: 3px solid var(--accent);
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  overflow-x: auto;
+}
+.methods .refs { font-size: 0.8rem; color: var(--muted); }
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding: 16px 0 26px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.site-footer a { color: var(--accent); }
+
+@media (max-width: 920px) {
+  .layout { grid-template-columns: 1fr; }
+  .controls { position: static; }
+  #cv-hap { height: 340px; }
+}

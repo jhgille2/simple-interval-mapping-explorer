@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple Interval Mapping Explorer</title>
+<meta name="description" content="Interactive visualization of simple interval mapping (Haley-Knott regression) for QTL detection in a RIL population.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <h1>Simple Interval Mapping Explorer</h1>
+    <p class="subtitle">
+      An interactive illustration of Haley&ndash;Knott interval mapping in a simulated
+      recombinant inbred line (RIL) population on a single chromosome.
+      Adjust marker density and population size and observe how the
+      marker-derived QTL genotype probabilities &mdash; the weights of the
+      genome scan &mdash; and the resulting LOD profile respond.
+    </p>
+    <p class="repo-link"><a href="https://github.com/jhgille2/simple-interval-mapping-explorer">Source on GitHub</a></p>
+  </div>
+</header>
+
+<div class="wrap layout">
+
+  <aside class="controls" aria-label="Simulation controls">
+    <h2>Controls</h2>
+
+    <fieldset>
+      <legend>Population</legend>
+      <label class="ctl">
+        <span class="ctl-name">RILs <output id="val-n" for="ctl-n">200</output></span>
+        <input type="range" id="ctl-n" min="50" max="1000" step="10" value="200">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">Chromosome length (cM) <output id="val-len" for="ctl-len">100</output></span>
+        <input type="range" id="ctl-len" min="50" max="200" step="10" value="100">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">Random seed <output id="val-seed" for="ctl-seed">7</output></span>
+        <input type="number" id="ctl-seed" min="1" max="999999" step="1" value="7">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Markers</legend>
+      <label class="ctl">
+        <span class="ctl-name">Marker spacing (cM) <output id="val-spacing" for="ctl-spacing">10</output></span>
+        <input type="range" id="ctl-spacing" min="1" max="40" step="1" value="10">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">Marker missing rate <output id="val-missing" for="ctl-missing">0.00</output></span>
+        <input type="range" id="ctl-missing" min="0" max="0.3" step="0.01" value="0">
+      </label>
+      <p class="hint" id="marker-count-hint"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>QTL</legend>
+      <label class="ctl">
+        <span class="ctl-name">QTL position (cM) <output id="val-qtlpos" for="ctl-qtlpos">35</output></span>
+        <input type="range" id="ctl-qtlpos" min="0" max="100" step="1" value="35">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">Additive effect <i>a</i> <output id="val-effect" for="ctl-effect">0.60</output></span>
+        <input type="range" id="ctl-effect" min="0" max="1.5" step="0.05" value="0.6">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">Residual SD &sigma; <output id="val-sigma" for="ctl-sigma">1.00</output></span>
+        <input type="range" id="ctl-sigma" min="0.2" max="2" step="0.05" value="1">
+      </label>
+      <p class="hint">QTL variance explained: <output id="val-varexp">26.5%</output>
+        (<i>a</i>&sup2; / (<i>a</i>&sup2; + &sigma;&sup2;))</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Display</legend>
+      <label class="ctl">
+        <span class="ctl-name">Selected RIL (click a row, or enter)</span>
+        <input type="number" id="ctl-ril" min="0" max="199" step="1" value="0">
+      </label>
+      <label class="check"><input type="checkbox" id="chk-traces" checked> Show all RIL weight traces (faint)</label>
+      <label class="check"><input type="checkbox" id="chk-info" checked> Show mean information content</label>
+    </fieldset>
+
+    <div class="btn-row">
+      <button type="button" id="btn-run">Resimulate</button>
+    </div>
+
+    <fieldset>
+      <legend>Significance threshold</legend>
+      <label class="ctl">
+        <span class="ctl-name">Permutations</span>
+        <select id="sel-perms">
+          <option value="200">200</option>
+          <option value="500" selected>500</option>
+          <option value="1000">1000</option>
+        </select>
+      </label>
+      <div class="btn-row">
+        <button type="button" id="btn-perm">Compute permutation threshold</button>
+      </div>
+      <p class="hint" id="perm-status">No permutation threshold computed; dashed line shows LOD&nbsp;=&nbsp;3.</p>
+    </fieldset>
+  </aside>
+
+  <main>
+    <section class="panel" aria-labelledby="h-hap">
+      <h2 id="h-hap">RIL marker genotypes</h2>
+      <p class="caption">
+        One row per RIL (first 160 shown), one column per marker, positioned in cM.
+        Blue: Parent&nbsp;A allele; orange: Parent&nbsp;B allele; grey: missing.
+        The dashed line marks the true QTL position. Click a row to select that RIL
+        for the weight panel below.
+      </p>
+      <canvas id="cv-hap" role="img" aria-label="Haplotype panel of RIL marker genotypes"></canvas>
+    </section>
+
+    <section class="panel" aria-labelledby="h-w">
+      <h2 id="h-w">QTL genotype weights from flanking markers</h2>
+      <p class="caption">
+        <i>P</i>(QTL = Parent&nbsp;A allele&nbsp;| observed marker data) scanned along the
+        chromosome. At an observed marker the probability is 0 or 1; between markers
+        it is a weighted interpolation determined by the flanking genotypes and their
+        recombination distances &mdash; this is the weighting that drives the interval-mapping
+        scan. The dot marks the selected RIL&rsquo;s true (unobserved) QTL genotype.
+      </p>
+      <canvas id="cv-w" role="img" aria-label="QTL genotype probability weight curves"></canvas>
+      <ul class="legend">
+        <li><span class="sw sw-sel"></span> selected RIL</li>
+        <li><span class="sw sw-faint"></span> other RILs</li>
+        <li><span class="sw sw-info"></span> mean |2<i>P</i>&minus;1| (information content)</li>
+        <li><span class="sw sw-qtl"></span> true QTL position</li>
+      </ul>
+    </section>
+
+    <section class="panel" aria-labelledby="h-lod">
+      <h2 id="h-lod">Haley&ndash;Knott LOD scan</h2>
+      <p class="caption">
+        At each 1&nbsp;cM grid position, the phenotype is regressed on the expected
+        QTL genotype <i>x&#770;</i> = 2<i>P</i>&nbsp;&minus;&nbsp;1 from the panel above;
+        LOD = (<i>n</i>/2)&nbsp;log<sub>10</sub>(RSS<sub>0</sub>/RSS<sub>1</sub>).
+        Ticks on the axis mark marker positions.
+      </p>
+      <canvas id="cv-lod" role="img" aria-label="LOD scan along the chromosome"></canvas>
+      <ul class="legend">
+        <li><span class="sw sw-lod"></span> LOD curve</li>
+        <li><span class="sw sw-thr"></span> significance threshold</li>
+        <li><span class="sw sw-qtl"></span> true QTL position</li>
+      </ul>
+    </section>
+
+    <section class="panel" aria-labelledby="h-sum">
+      <h2 id="h-sum">Scan summary</h2>
+      <table class="summary">
+        <tbody id="sum-body"></tbody>
+      </table>
+    </section>
+
+    <section class="panel" aria-labelledby="h-methods">
+      <h2 id="h-methods">Statistical methodology</h2>
+      <details open>
+        <summary>Model, weights, and scan statistic</summary>
+        <div class="methods">
+          <p>
+            For RIL <i>i</i>, let <i>x<sub>i</sub></i> &isin; {&minus;1, +1} be the
+            unobserved QTL genotype (&minus;1: Parent&nbsp;B homozygote, +1:
+            Parent&nbsp;A homozygote) and <i>y<sub>i</sub></i> the phenotype. The
+            single-QTL model is
+          </p>
+          <p class="eq"><i>y<sub>i</sub></i> = &mu; + <i>a&thinsp;x<sub>i</sub></i> + &epsilon;<sub><i>i</i></sub>,
+            &epsilon;<sub><i>i</i></sub> &sim; N(0, &sigma;&sup2;),</p>
+          <p>with <i>a</i> the additive effect (half the homozygote difference).</p>
+          <p>
+            Genotypes are observed only at markers. In simple interval mapping the
+            QTL genotype between markers is replaced by its conditional expectation
+            given the nearest observed flanking markers (Haley&ndash;Knott regression).
+            For a position &lambda; between markers M<sub>1</sub> (genotype
+            <i>g</i><sub>1</sub>) at recombination distance <i>r</i><sub>1</sub> and
+            M<sub>2</sub> (<i>g</i><sub>2</sub>) at <i>r</i><sub>2</sub>, with the
+            RIL-by-selfing switch probabilities <i>R<sub>k</sub></i> = 2<i>r<sub>k</sub></i>/(1&nbsp;+&nbsp;2<i>r<sub>k</sub></i>)
+            (Haldane&ndash;Waddington map expansion; Haldane map, no interference) and
+            <i>R</i><sub>12</sub> = <i>R</i><sub>1</sub>&nbsp;+&nbsp;<i>R</i><sub>2</sub>&nbsp;&minus;&nbsp;2<i>R</i><sub>1</sub><i>R</i><sub>2</sub>:
+          </p>
+          <p class="eq">
+            <i>P</i>(QTL&nbsp;=&nbsp;A&thinsp;|&thinsp;A,A) = (1&minus;<i>R</i><sub>1</sub>)(1&minus;<i>R</i><sub>2</sub>)/(1&minus;<i>R</i><sub>12</sub>)<br>
+            <i>P</i>(QTL&nbsp;=&nbsp;A&thinsp;|&thinsp;A,B) = (1&minus;<i>R</i><sub>1</sub>)<i>R</i><sub>2</sub>/<i>R</i><sub>12</sub><br>
+            <i>P</i>(QTL&nbsp;=&nbsp;A&thinsp;|&thinsp;B,A) = <i>R</i><sub>1</sub>(1&minus;<i>R</i><sub>2</sub>)/<i>R</i><sub>12</sub><br>
+            <i>P</i>(QTL&nbsp;=&nbsp;A&thinsp;|&thinsp;B,B) = <i>R</i><sub>1</sub><i>R</i><sub>2</sub>/<i>R</i><sub>12</sub>
+          </p>
+          <p>
+            (Lander &amp; Botstein 1989). At an observed marker the probability is 0 or 1;
+            outside the observed marker range, or where both flanks are missing, it is the
+            marginal 0.5. The scan regresses <i>y</i> on
+            <i>x&#770;<sub>i</sub></i>(&lambda;) = 2<i>P<sub>i</sub></i>(&lambda;)&nbsp;&minus;&nbsp;1
+            at each grid position; the plotted LOD compares this model against the
+            intercept-only null. The genome-wide significance threshold is obtained by
+            permuting phenotypes (Churchill &amp; Doerge 1994).
+          </p>
+          <p>
+            Key assumptions: a single QTL on the chromosome, no crossover interference,
+            RILs fully inbred by selfing, and residuals independent and normal.
+            Haley&ndash;Knott regression is an approximation to full maximum-likelihood
+            interval mapping; it is exact at markers and slightly conservative between them.
+          </p>
+          <p class="refs">References: Lander ES, Botstein D (1989) Genetics 121:185&ndash;199;
+            Haley CS, Knott SA (1992) Heredity 69:315&ndash;324;
+            Churchill GA, Doerge RW (1994) Genetics 138:963&ndash;971;
+            Broman KW, Sen &#346; (2009) <i>A Guide to QTL Mapping in Experimental Crosses</i>,
+            Springer.</p>
+        </div>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Simple Interval Mapping Explorer &mdash; simulated data for illustration only.
+    <a href="https://github.com/jhgille2/simple-interval-mapping-explorer">GitHub repository</a>.</p>
+  </div>
+</footer>
+
+<script src="js/sim-core.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
